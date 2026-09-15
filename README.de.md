@@ -4,6 +4,12 @@ Eine kleine Windows-Tray-Anwendung, die ausschließlich die seitliche
 Lichtleiste der **OMOTON MK212** als klassische Datenträger-LED verwendet.
 Die Tastenbeleuchtung bleibt unverändert.
 
+<p align="center">
+  <img src="assets/mk212-side-light.png" alt="Die Seitenleuchte der OMOTON MK212 zeigt Datenträgeraktivität" width="520">
+</p>
+
+<p align="center"><em>Die MK212-Seitenleuchte als klassische Datenträgeranzeige.</em></p>
+
 ![Nativer Windows-Farbdialog mit Live-Vorschau](assets/screenshot.png)
 
 ## Einrichtung

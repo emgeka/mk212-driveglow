@@ -9,6 +9,12 @@ The key backlight is left untouched. The application talks directly to the
 keyboard's VIA/QMK-compatible HID interface and restores the previous side-light
 settings when it exits normally.
 
+<p align="center">
+  <img src="assets/mk212-side-light.png" alt="OMOTON MK212 side light showing disk activity" width="520">
+</p>
+
+<p align="center"><em>The MK212 side light acting as a classic disk activity indicator.</em></p>
+
 ![Native Windows color picker with live keyboard preview](assets/screenshot.png)
 
 ## Features
