@@ -27,6 +27,10 @@ umschalten oder das Programm beenden. Die Farbe wird für den aktuellen
 Windows-Benutzer gespeichert. Beim normalen Beenden wird die vorherige
 Einstellung der Seitenleiste wiederhergestellt.
 
+Unter **Anzeigeart** kann zwischen dem klassischen Blinken und dem
+**Aktivitätspegel** gewechselt werden. Der Pegel bildet die gemessene
+Datenträgerrate logarithmisch auf die Helligkeit der gesamten Seitenleiste ab.
+
 ## Entfernen
 
 ```powershell

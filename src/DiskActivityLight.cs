@@ -96,6 +96,25 @@ internal static class Program
         }
     }
 
+    internal static int DisplayMode
+    {
+        get
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(SettingsKey))
+            {
+                object stored = key == null ? null : key.GetValue("DisplayMode");
+                int mode;
+                if (stored != null && int.TryParse(stored.ToString(), out mode) && mode == 1) return 1;
+            }
+            return 0;
+        }
+        set
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(SettingsKey))
+                key.SetValue("DisplayMode", value == 1 ? 1 : 0, RegistryValueKind.DWord);
+        }
+    }
+
     private static void ToKeyboardHsv(Color color, out byte hue, out byte saturation)
     {
         hue = (byte)Math.Round((color.GetHue() / 360.0) * 255.0);
@@ -194,12 +213,14 @@ internal static class Program
         private int activityColorArgb;
         private int colorRevision;
         private int previewMode;
+        private int displayMode;
 
         public TrayContext(EventWaitHandle stopEvent)
         {
             stop = stopEvent;
             ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
             Color savedColor = ActivityColor;
+            displayMode = DisplayMode;
             activityColorArgb = savedColor.ToArgb();
             activeIcon = TrayIcon.Create(savedColor);
             idleIcon = TrayIcon.Create(Dim(savedColor));
@@ -211,6 +232,26 @@ internal static class Program
             var chooseColor = new ToolStripMenuItem("Anzeigefarbe …");
             chooseColor.Click += delegate { ChooseColor(); };
             menu.Items.Add(chooseColor);
+            var displayType = new ToolStripMenuItem("Anzeigeart");
+            var classicMode = new ToolStripMenuItem("Klassisches Blinken") { Checked = displayMode == 0 };
+            var levelMode = new ToolStripMenuItem("Aktivit\u00e4tspegel") { Checked = displayMode == 1 };
+            classicMode.Click += delegate
+            {
+                DisplayMode = 0;
+                Interlocked.Exchange(ref displayMode, 0);
+                classicMode.Checked = true;
+                levelMode.Checked = false;
+            };
+            levelMode.Click += delegate
+            {
+                DisplayMode = 1;
+                Interlocked.Exchange(ref displayMode, 1);
+                classicMode.Checked = false;
+                levelMode.Checked = true;
+            };
+            displayType.DropDownItems.Add(classicMode);
+            displayType.DropDownItems.Add(levelMode);
+            menu.Items.Add(displayType);
             var startup = new ToolStripMenuItem("Beim Anmelden starten") { CheckOnClick = true, Checked = StartupEnabled };
             startup.CheckedChanged += delegate
             {
@@ -319,7 +360,9 @@ internal static class Program
                             int appliedColorRevision = -1;
                             keyboard.SetEffect(5);       // steady side light
                             keyboard.SetBrightness(0);
-                            bool lit = false;
+                            bool trayActive = false;
+                            int appliedBrightness = 0;
+                            double activityLevel = 0;
                             DateTime lastActivity = DateTime.MinValue;
                             while (!stop.WaitOne(70))
                             {
@@ -333,13 +376,36 @@ internal static class Program
                                 }
                                 bool previewing = Thread.VolatileRead(ref previewMode) != 0;
                                 double bytesPerSecond = disk.Sample();
-                                if (!previewing && bytesPerSecond >= 4096) lastActivity = DateTime.UtcNow;
-                                bool shouldLight = previewing || (DateTime.UtcNow - lastActivity).TotalMilliseconds < 130;
-                                if (shouldLight != lit)
+                                int mode = Thread.VolatileRead(ref displayMode);
+                                int wantedBrightness;
+                                if (previewing)
                                 {
-                                    keyboard.SetBrightness(shouldLight ? 120 : 0);
-                                    lit = shouldLight;
-                                    SetActivity(lit);
+                                    wantedBrightness = 120;
+                                }
+                                else if (mode == 1)
+                                {
+                                    double instantaneous = bytesPerSecond < 4096 ? 0 :
+                                        Math.Log10(1.0 + bytesPerSecond / 4096.0) / Math.Log10(1.0 + 250000000.0 / 4096.0);
+                                    instantaneous = Math.Max(0, Math.Min(1, instantaneous));
+                                    activityLevel = Math.Max(instantaneous, activityLevel * 0.78);
+                                    wantedBrightness = activityLevel < 0.025 ? 0 : (int)Math.Round(12 + activityLevel * 148);
+                                }
+                                else
+                                {
+                                    activityLevel = 0;
+                                    if (bytesPerSecond >= 4096) lastActivity = DateTime.UtcNow;
+                                    wantedBrightness = (DateTime.UtcNow - lastActivity).TotalMilliseconds < 130 ? 120 : 0;
+                                }
+                                if (Math.Abs(wantedBrightness - appliedBrightness) >= 3 || (wantedBrightness == 0) != (appliedBrightness == 0))
+                                {
+                                    keyboard.SetBrightness(wantedBrightness);
+                                    appliedBrightness = wantedBrightness;
+                                }
+                                bool isActive = wantedBrightness > 0;
+                                if (isActive != trayActive)
+                                {
+                                    trayActive = isActive;
+                                    SetActivity(trayActive);
                                 }
                             }
                         }

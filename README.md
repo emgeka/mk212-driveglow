@@ -16,6 +16,7 @@ settings when it exits normally.
 - Warm amber flash on disk read/write activity
 - Dedicated tray icon that mirrors the activity state
 - Native Windows color picker with live preview
+- Optional activity-level mode that maps disk throughput to brightness
 - Tray status showing whether the MK212 is connected
 - Optional automatic start when signing in to Windows
 - Automatic reconnect when the keyboard is unplugged and connected again
