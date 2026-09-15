@@ -1,0 +1,6 @@
+dist/
+*.user
+*.suo
+*.pdb
+*.zip
+.vs/

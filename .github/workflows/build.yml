@@ -1,0 +1,20 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build application
+        shell: cmd
+        run: build.cmd
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: MK212-DriveGlow
+          path: dist/MK212-DriveGlow.exe
