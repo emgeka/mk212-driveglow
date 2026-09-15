@@ -358,6 +358,7 @@ internal static class Program
                         try
                         {
                             int appliedColorRevision = -1;
+                            DateTime lastColorWrite = DateTime.MinValue;
                             keyboard.SetEffect(5);       // steady side light
                             keyboard.SetBrightness(0);
                             bool trayActive = false;
@@ -367,12 +368,14 @@ internal static class Program
                             while (!stop.WaitOne(70))
                             {
                                 int wantedColorRevision = Thread.VolatileRead(ref colorRevision);
-                                if (wantedColorRevision != appliedColorRevision)
+                                if (wantedColorRevision != appliedColorRevision ||
+                                    (DateTime.UtcNow - lastColorWrite).TotalMilliseconds >= 65)
                                 {
                                     byte hue, saturation;
                                     GetKeyboardColor(out hue, out saturation);
                                     keyboard.SetColor(hue, saturation);
                                     appliedColorRevision = wantedColorRevision;
+                                    lastColorWrite = DateTime.UtcNow;
                                 }
                                 bool previewing = Thread.VolatileRead(ref previewMode) != 0;
                                 double bytesPerSecond = disk.Sample();
@@ -1051,16 +1054,19 @@ internal sealed class Mk212 : IDisposable
         Array.Copy(args, 0, output, 2, Math.Min(args.Length, output.Length - 2));
         stream.Write(output, 0, output.Length);
         stream.Flush();
-        byte[] input = new byte[inputLength];
-        int read = 0;
-        while (read < input.Length)
+        for (int attempt = 0; attempt < 8; attempt++)
         {
-            int n = stream.Read(input, read, input.Length - read);
-            if (n <= 0) throw new IOException("Keine Antwort von der MK212.");
-            read += n;
+            byte[] input = new byte[inputLength];
+            int read = 0;
+            while (read < input.Length)
+            {
+                int n = stream.Read(input, read, input.Length - read);
+                if (n <= 0) throw new IOException("Keine Antwort von der MK212.");
+                read += n;
+            }
+            if (input.Length >= 2 && input[1] == command) return input;
         }
-        if (input.Length < 2 || input[1] != command) throw new IOException("Unerwartete Antwort von der MK212.");
-        return input;
+        throw new IOException("Keine passende Antwort von der MK212.");
     }
 
     public void Dispose() { stream.Dispose(); }

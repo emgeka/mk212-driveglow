@@ -20,6 +20,7 @@ settings when it exits normally.
 - Tray status showing whether the MK212 is connected
 - Optional automatic start when signing in to Windows
 - Automatic reconnect when the keyboard is unplugged and connected again
+- Periodically reasserts the selected side-light color if another RGB application overwrites it
 - No drivers, services, administrator rights, or third-party libraries
 - Restores the previous side-light effect, color, speed, and brightness on exit
 
@@ -81,12 +82,12 @@ single build process and does not change the system policy.
 
 ## SignalRGB and other RGB applications
 
-SignalRGB does not currently list the OMOTON MK212 as a supported device, and
-the application can coexist with SignalRGB when SignalRGB is controlling other
-hardware. If another application or a future plugin begins controlling this
-keyboard's VIA interface, the two applications may overwrite each other's
-commands or cause flickering. Only one application should control the MK212 side
-light at a time.
+The application periodically reasserts its selected side-light color so that
+occasional VIA writes from SignalRGB or another RGB application do not leave the
+activity indicator in the wrong color. If another application continuously
+controls the MK212 at a high update rate, both programs can still compete and
+cause flickering. Excluding the MK212 from the other application remains the
+cleanest solution when that option is available.
 
 ## Technical notes
 

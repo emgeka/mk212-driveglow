@@ -31,6 +31,11 @@ Unter **Anzeigeart** kann zwischen dem klassischen Blinken und dem
 **Aktivitätspegel** gewechselt werden. Der Pegel bildet die gemessene
 Datenträgerrate logarithmisch auf die Helligkeit der gesamten Seitenleiste ab.
 
+DriveGlow setzt die gewählte Farbe regelmäßig erneut. Dadurch wird sie nach
+gelegentlichen VIA-Schreibzugriffen anderer RGB-Programme wie SignalRGB wieder
+hergestellt. Steuert ein anderes Programm die MK212 dauerhaft mit hoher
+Aktualisierungsrate, sollte die Tastatur dort nach Möglichkeit ausgeschlossen werden.
+
 ## Entfernen
 
 ```powershell
