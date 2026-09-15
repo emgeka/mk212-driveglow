@@ -42,6 +42,28 @@ gelegentlichen VIA-Schreibzugriffen anderer RGB-Programme wie SignalRGB wieder
 hergestellt. Steuert ein anderes Programm die MK212 dauerhaft mit hoher
 Aktualisierungsrate, sollte die Tastatur dort nach Möglichkeit ausgeschlossen werden.
 
+## Möglicher QMK-/GPL-Lizenzverstoß
+
+Die MK212 wird als QMK/VIA-kompatibel angeboten, und OMOTON stellt auf seiner
+[offiziellen Downloadseite](https://omoton.com/collections/keyboard-mouse) eine
+VIA-JSON-Definition bereit. Mit Stand vom 15. September 2026 konnten wir jedoch
+keinen vollständigen korrespondierenden Quellcode der mit der Tastatur
+ausgelieferten Firmware finden.
+
+Das QMK-Projekt weist darauf hin, dass bei QMK-basierter Firmware sowie bei der
+Übernahme von QMK/VIA-Firmwarecode der vollständige Quellcode der ausgelieferten
+Firmware gemäß GPL verfügbar gemacht werden muss. Siehe dazu die offiziellen
+[Hinweise zu Lizenzverstößen](https://github.com/qmk/qmk_firmware/blob/master/docs/license_violations.md)
+und den [Text der GPLv2](https://github.com/qmk/qmk_firmware/blob/master/license_GPLv2.md).
+Falls die MK212-Firmware entsprechenden Code enthält und kein korrespondierender
+Quellcode angeboten wird, könnte dies einen GPL-Verstoß darstellen. Dies ist
+keine rechtliche Feststellung. Sollte eine offizielle Quellcodeveröffentlichung
+existieren, bitten wir um einen Issue mit dem Link, damit dieser Hinweis
+korrigiert werden kann.
+
+MK212 DriveGlow ist eine unabhängige Anwendung auf dem Windows-PC und enthält
+keinen kopierten Firmwarecode der Tastatur.
+
 ## Entfernen
 
 ```powershell

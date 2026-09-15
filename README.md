@@ -110,6 +110,26 @@ save the activity flashes to the keyboard EEPROM.
 Disk activity is sampled through Windows PDH using the language-independent
 English counter `PhysicalDisk(_Total)\Disk Bytes/sec`.
 
+## Possible QMK/GPL compliance issue
+
+The MK212 is advertised as QMK/VIA compatible, and OMOTON provides a VIA JSON
+definition on its [official download page](https://omoton.com/collections/keyboard-mouse).
+As of September 15, 2026, however, we have not been able to locate the complete
+corresponding source code for the firmware shipped with the keyboard.
+
+The QMK project states that firmware based on QMK, or firmware incorporating
+QMK/VIA firmware code, must make the complete source code for the shipped
+firmware available under the GPL. See QMK's official
+[license-violation guidance](https://github.com/qmk/qmk_firmware/blob/master/docs/license_violations.md)
+and [GPLv2 license text](https://github.com/qmk/qmk_firmware/blob/master/license_GPLv2.md).
+If the MK212 firmware contains such code and no corresponding source is made
+available, this may represent a GPL compliance violation. This is not a legal
+determination. If an official source release exists, please open an issue with
+the link so this notice can be corrected.
+
+MK212 DriveGlow is an independent host-side application and contains no copied
+keyboard firmware code.
+
 ## License
 
 [MIT](LICENSE)
