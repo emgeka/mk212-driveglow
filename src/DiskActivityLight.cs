@@ -278,23 +278,6 @@ internal static class Program
         }
     }
 
-    internal static bool TaskbarDisplayEnabled
-    {
-        get
-        {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(SettingsKey))
-            {
-                object stored = key == null ? null : key.GetValue("TaskbarDisplayEnabled");
-                return stored != null && stored.ToString() == "1";
-            }
-        }
-        set
-        {
-            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(SettingsKey))
-                key.SetValue("TaskbarDisplayEnabled", value ? 1 : 0, RegistryValueKind.DWord);
-        }
-    }
-
     private static void ToKeyboardHsv(Color color, out byte hue, out byte saturation)
     {
         hue = (byte)Math.Round((color.GetHue() / 360.0) * 255.0);
@@ -425,8 +408,6 @@ internal static class Program
         private int lastTrayLevel = -1;
         private double latestActivityLevel;
         private bool latestActive;
-        private TaskbarStatusForm taskbarForm;
-        private ToolStripMenuItem taskbarDisplay;
 
         public TrayContext(EventWaitHandle stopEvent)
         {
@@ -445,7 +426,7 @@ internal static class Program
             var chooseColor = new ToolStripMenuItem("Anzeigefarbe …");
             chooseColor.Click += delegate { ChooseColor(); };
             menu.Items.Add(chooseColor);
-            var displayType = new ToolStripMenuItem("Anzeigeart");
+            var displayType = new ToolStripMenuItem("Lichtleiste");
             var classicMode = new ToolStripMenuItem("Klassisches Blinken") { Checked = displayMode == 0 };
             var levelMode = new ToolStripMenuItem("Aktivit\u00e4tspegel") { Checked = displayMode == 1 };
             classicMode.Click += delegate
@@ -466,7 +447,7 @@ internal static class Program
             displayType.DropDownItems.Add(levelMode);
             menu.Items.Add(displayType);
             var trayDisplay = new ToolStripMenuItem("Tray-Anzeige");
-            var trayPoint = new ToolStripMenuItem("Aktivit\u00e4tspunkt") { Checked = trayDisplayMode == 0 };
+            var trayPoint = new ToolStripMenuItem("Klassisches Blinken") { Checked = trayDisplayMode == 0 };
             var trayLevel = new ToolStripMenuItem("Aktivit\u00e4tspegel") { Checked = trayDisplayMode == 1 };
             var trayStatic = new ToolStripMenuItem("Nur App-Symbol") { Checked = trayDisplayMode == 2 };
             ToolStripMenuItem[] trayChoices = { trayPoint, trayLevel, trayStatic };
@@ -484,13 +465,6 @@ internal static class Program
                 trayDisplay.DropDownItems.Add(trayChoices[i]);
             }
             menu.Items.Add(trayDisplay);
-            taskbarDisplay = new ToolStripMenuItem("Aktivit\u00e4t in der Taskleiste") { CheckOnClick = true, Checked = TaskbarDisplayEnabled };
-            taskbarDisplay.CheckedChanged += delegate
-            {
-                TaskbarDisplayEnabled = taskbarDisplay.Checked;
-                UpdateTaskbarWindow();
-            };
-            menu.Items.Add(taskbarDisplay);
             var startup = new ToolStripMenuItem("Beim Anmelden starten") { CheckOnClick = true, Checked = StartupEnabled };
             startup.CheckedChanged += delegate
             {
@@ -518,7 +492,6 @@ internal static class Program
                 ReRegisterTrayIcon();
             };
             trayRegistrationTimer.Start();
-            UpdateTaskbarWindow();
 
             worker = new Thread(WorkerLoop) { IsBackground = true, Name = AppName };
             worker.Start();
@@ -568,36 +541,11 @@ internal static class Program
             latestActivityLevel = Math.Max(0, Math.Min(1, level));
             latestActive = active;
             int mode = Thread.VolatileRead(ref trayDisplayMode);
-            int trayLevel = mode == 0 ? (active ? 5 : 0) : mode == 1 ? (int)Math.Ceiling(latestActivityLevel * 5.0) : 0;
+            int trayLevel = mode == 0 ? (active ? 8 : 0) : mode == 1 ? (int)Math.Ceiling(latestActivityLevel * 8.0) : 0;
             if (trayLevel != lastTrayLevel)
             {
                 lastTrayLevel = trayLevel;
                 icon.Icon = mode == 0 ? (active ? activeIcon : idleIcon) : mode == 1 ? levelIcons[trayLevel] : staticIcon;
-            }
-            if (taskbarForm != null) taskbarForm.SetActivity(latestActivityLevel);
-        }
-
-        private void UpdateTaskbarWindow()
-        {
-            if (taskbarDisplay.Checked)
-            {
-                if (taskbarForm == null || taskbarForm.IsDisposed)
-                {
-                    taskbarForm = new TaskbarStatusForm(Color.FromArgb(activityColorArgb));
-                    taskbarForm.FormClosed += delegate
-                    {
-                        taskbarForm = null;
-                        if (taskbarDisplay.Checked) taskbarDisplay.Checked = false;
-                    };
-                    taskbarForm.Show();
-                    taskbarForm.SetActivity(latestActivityLevel);
-                }
-            }
-            else if (taskbarForm != null)
-            {
-                TaskbarStatusForm closing = taskbarForm;
-                taskbarForm = null;
-                closing.Close();
             }
         }
 
@@ -623,15 +571,14 @@ internal static class Program
             BuildTrayIcons(selected);
             lastTrayLevel = -1;
             UpdateActivityDisplays(latestActivityLevel, latestActive);
-            if (taskbarForm != null) taskbarForm.ActivityColor = selected;
         }
 
         private void BuildTrayIcons(Color color)
         {
-            Icon newActive = TrayIcon.Create(color);
-            Icon newIdle = TrayIcon.Create(Dim(color));
+            Icon newActive = TrayIcon.CreateLevel(color, 8);
+            Icon newIdle = TrayIcon.CreateLevel(color, 0);
             Icon newStatic = TrayIcon.CreateStatic();
-            Icon[] newLevels = new Icon[6];
+            Icon[] newLevels = new Icon[9];
             for (int i = 0; i < newLevels.Length; i++) newLevels[i] = TrayIcon.CreateLevel(color, i);
 
             Icon oldActive = activeIcon;
@@ -646,11 +593,6 @@ internal static class Program
             if (oldIdle != null) oldIdle.Dispose();
             if (oldStatic != null) oldStatic.Dispose();
             if (oldLevels != null) foreach (Icon old in oldLevels) old.Dispose();
-        }
-
-        private static Color Dim(Color color)
-        {
-            return Color.FromArgb(Math.Max(28, color.R / 3), Math.Max(28, color.G / 3), Math.Max(28, color.B / 3));
         }
 
         private void GetKeyboardColor(out byte hue, out byte saturation)
@@ -753,7 +695,6 @@ internal static class Program
                 staticIcon.Dispose();
                 foreach (Icon levelIcon in levelIcons) levelIcon.Dispose();
                 waitingIcon.Dispose();
-                if (taskbarForm != null) taskbarForm.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -1233,179 +1174,50 @@ internal static class TrayIcon
 
     public static Icon Create(Color led)
     {
-        using (var bitmap = new Bitmap(32, 32, PixelFormat.Format32bppArgb))
-        using (Graphics g = Graphics.FromImage(bitmap))
-        {
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.Clear(Color.Transparent);
-            using (var body = new SolidBrush(Color.FromArgb(47, 52, 58)))
-            using (var edge = new Pen(Color.FromArgb(220, 225, 230), 2.2f))
-            using (var platter = new Pen(Color.FromArgb(170, 180, 190), 1.8f))
-            using (var light = new SolidBrush(led))
-            {
-                g.FillRectangle(body, 3, 6, 26, 20);
-                g.DrawRectangle(edge, 4, 7, 24, 18);
-                g.DrawEllipse(platter, 9, 10, 12, 12);
-                g.DrawLine(platter, 17, 17, 23, 12);
-                g.FillEllipse(light, 23, 20, 4, 4);
-            }
-            IntPtr handle = bitmap.GetHicon();
-            try { return (Icon)Icon.FromHandle(handle).Clone(); }
-            finally { DestroyIcon(handle); }
-        }
+        return CreateLevel(led, 8);
     }
 
     public static Icon CreateStatic()
     {
-        return Create(Color.FromArgb(105, 170, 225));
+        return CreateLevel(Color.FromArgb(105, 170, 225), 8);
     }
 
     public static Icon CreateLevel(Color led, int level)
     {
-        level = Math.Max(0, Math.Min(5, level));
+        level = Math.Max(0, Math.Min(8, level));
         using (var bitmap = new Bitmap(32, 32, PixelFormat.Format32bppArgb))
         using (Graphics g = Graphics.FromImage(bitmap))
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Color.Transparent);
-            using (var body = new SolidBrush(Color.FromArgb(47, 52, 58)))
-            using (var edge = new Pen(Color.FromArgb(220, 225, 230), 2.2f))
-            using (var platter = new Pen(Color.FromArgb(150, 165, 180), 1.6f))
-            using (var on = new SolidBrush(led))
-            using (var off = new SolidBrush(Color.FromArgb(75, 82, 90)))
+            Rectangle outer = new Rectangle(3, 3, 26, 26);
+            Rectangle inner = new Rectangle(6, 6, 20, 20);
+            int fillHeight = (int)Math.Round(inner.Height * level / 8.0);
+            Rectangle fill = new Rectangle(inner.X, inner.Bottom - fillHeight, inner.Width, fillHeight);
+            using (var body = new SolidBrush(Color.FromArgb(42, 47, 54)))
+            using (var fillBrush = new SolidBrush(led))
+            using (var edge = new Pen(Color.FromArgb(235, 238, 242), 2.2f))
+            using (var symbol = new Pen(Color.FromArgb(230, 255, 255, 255), 1.7f))
+            using (var shadow = new Pen(Color.FromArgb(125, 0, 0, 0), 2.8f))
             {
-                g.FillRectangle(body, 3, 5, 26, 22);
-                g.DrawRectangle(edge, 4, 6, 24, 20);
-                g.DrawEllipse(platter, 10, 8, 11, 11);
-                g.DrawLine(platter, 17, 15, 23, 10);
-                for (int i = 0; i < 5; i++)
-                    g.FillRectangle(i < level ? on : off, 6 + i * 4, 21, 3, 3);
+                g.FillRectangle(body, inner);
+                if (fillHeight > 0) g.FillRectangle(fillBrush, fill);
+                for (int i = 1; i < 4; i++)
+                {
+                    int y = inner.Bottom - i * 5;
+                    g.DrawLine(shadow, inner.Left, y, inner.Right, y);
+                }
+                g.DrawRectangle(edge, outer);
+                g.DrawEllipse(shadow, 10, 8, 12, 12);
+                g.DrawEllipse(symbol, 10, 8, 12, 12);
+                g.DrawLine(shadow, 17, 15, 24, 10);
+                g.DrawLine(symbol, 17, 15, 24, 10);
             }
             IntPtr handle = bitmap.GetHicon();
             try { return (Icon)Icon.FromHandle(handle).Clone(); }
             finally { DestroyIcon(handle); }
         }
     }
-}
-
-internal sealed class TaskbarStatusForm : Form
-{
-    private readonly Label activityText;
-    private readonly ProgressBar activityBar;
-    private ITaskbarList3 taskbar;
-    private double pendingActivity;
-
-    public Color ActivityColor
-    {
-        set
-        {
-            Icon old = Icon;
-            Icon = TrayIcon.Create(value);
-            if (old != null) old.Dispose();
-        }
-    }
-
-    public TaskbarStatusForm(Color color)
-    {
-        Text = "MK212 DriveGlow – Laufwerksaktivität";
-        ClientSize = new Size(340, 92);
-        MinimumSize = new Size(300, 130);
-        MaximizeBox = false;
-        StartPosition = FormStartPosition.CenterScreen;
-        Icon = TrayIcon.Create(color);
-
-        activityText = new Label
-        {
-            AutoSize = false,
-            Location = new Point(16, 14),
-            Size = new Size(308, 24),
-            Text = "Datenträgeraktivität: 0 %"
-        };
-        activityBar = new ProgressBar
-        {
-            Location = new Point(16, 44),
-            Size = new Size(308, 22),
-            Minimum = 0,
-            Maximum = 100
-        };
-        Controls.Add(activityText);
-        Controls.Add(activityBar);
-
-        Shown += delegate
-        {
-            try
-            {
-                taskbar = (ITaskbarList3)new TaskbarList();
-                taskbar.HrInit();
-                ApplyActivity();
-            }
-            catch { taskbar = null; }
-            BeginInvoke((MethodInvoker)delegate { WindowState = FormWindowState.Minimized; });
-        };
-    }
-
-    protected override bool ShowWithoutActivation { get { return true; } }
-
-    public void SetActivity(double level)
-    {
-        pendingActivity = Math.Max(0, Math.Min(1, level));
-        if (IsHandleCreated) ApplyActivity();
-    }
-
-    private void ApplyActivity()
-    {
-        int percent = (int)Math.Round(pendingActivity * 100.0);
-        activityBar.Value = percent;
-        activityText.Text = "Datenträgeraktivität: " + percent + " %";
-        if (taskbar != null)
-        {
-            try
-            {
-                taskbar.SetProgressState(Handle, TaskbarProgressState.Normal);
-                taskbar.SetProgressValue(Handle, (ulong)percent, 100);
-            }
-            catch { }
-        }
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            if (taskbar != null && Marshal.IsComObject(taskbar)) Marshal.FinalReleaseComObject(taskbar);
-            taskbar = null;
-            if (Icon != null) Icon.Dispose();
-        }
-        base.Dispose(disposing);
-    }
-}
-
-internal enum TaskbarProgressState
-{
-    NoProgress = 0,
-    Indeterminate = 1,
-    Normal = 2,
-    Error = 4,
-    Paused = 8
-}
-
-[ComImport]
-[Guid("56FDF344-FD6D-11d0-958A-006097C9A090")]
-internal class TaskbarList { }
-
-[ComImport]
-[Guid("EA1AFB91-9E28-4B86-90E9-9E9F8A5EEA84")]
-[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-internal interface ITaskbarList3
-{
-    void HrInit();
-    void AddTab(IntPtr hwnd);
-    void DeleteTab(IntPtr hwnd);
-    void ActivateTab(IntPtr hwnd);
-    void SetActiveAlt(IntPtr hwnd);
-    void MarkFullscreenWindow(IntPtr hwnd, [MarshalAs(UnmanagedType.Bool)] bool fullscreen);
-    void SetProgressValue(IntPtr hwnd, ulong completed, ulong total);
-    void SetProgressState(IntPtr hwnd, TaskbarProgressState state);
 }
 
 internal sealed class DiskRate : IDisposable

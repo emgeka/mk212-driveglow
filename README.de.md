@@ -15,7 +15,7 @@ Die Tastenbeleuchtung bleibt unverändert.
 ## Einrichtung
 
 Am einfachsten ist die Installation mit
-`MK212-DriveGlow-Setup-v1.2.2.exe`. Der Assistent installiert DriveGlow ohne
+`MK212-DriveGlow-Setup-v1.3.0.exe`. Der Assistent installiert DriveGlow ohne
 Administratorrechte, legt einen Startmenüeintrag an und bietet den automatischen
 Start bei der Windows-Anmeldung an.
 
@@ -50,16 +50,15 @@ automatisch übernommen und auf den aktuellen Speicherort repariert.
 Falls eine ältere Installation nicht startet, kann die Verknüpfung außerdem mit
 `MK212-DriveGlow.exe --repair-startup` neu angelegt werden.
 
-Unter **Anzeigeart** kann zwischen dem klassischen Blinken und dem
+Unter **Lichtleiste** kann zwischen dem klassischen Blinken und dem
 **Aktivitätspegel** gewechselt werden. Der Pegel bildet die gemessene
 Datenträgerrate logarithmisch auf die Helligkeit der gesamten Seitenleiste ab.
 
 Unter **Tray-Anzeige** lässt sich unabhängig davon auswählen, ob das
-Laufwerkssymbol einen einfachen Aktivitätspunkt, einen fünfstufigen Pegel oder
-nur das statische App-Symbol zeigt. Die optionale **Aktivität in der Taskleiste**
-öffnet einen eigenen DriveGlow-Taskleistenknopf und bildet die Auslastung mit dem
-nativen Windows-Fortschrittsbalken ab. Ein Klick auf den Knopf zeigt zusätzlich
-den aktuellen Prozentwert. Die Taskleistenanzeige ist standardmäßig deaktiviert.
+Laufwerkssymbol klassisch blinkt, einen achtstufigen Aktivitätspegel über die
+gesamte Iconfläche zeigt oder als statisches App-Symbol dargestellt wird. Das
+Trayicon dient damit zugleich als kompakte Statusanzeige direkt links neben Uhr
+und Datum; ein zusätzliches Programmfenster wird nicht mehr angelegt.
 
 ## SignalRGB
 

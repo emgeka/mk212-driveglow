@@ -14,4 +14,4 @@ if (-not $compiler) {
 
 & $compiler (Join-Path $projectRoot 'installer\MK212DriveGlow.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
-Write-Host "Built $(Join-Path $projectRoot 'dist\MK212-DriveGlow-Setup-v1.2.2.exe')"
+Write-Host "Built $(Join-Path $projectRoot 'dist\MK212-DriveGlow-Setup-v1.3.0.exe')"

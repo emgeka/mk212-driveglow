@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MK212-DriveGlow-Setup
-          path: dist/MK212-DriveGlow-Setup-v1.2.2.exe
+          path: dist/MK212-DriveGlow-Setup-v1.3.0.exe

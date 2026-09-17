@@ -7,5 +7,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("MK212 DriveGlow")]
 [assembly: AssemblyCopyright("Copyright (c) 2026 MK212 DriveGlow contributors")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("1.2.2.0")]
-[assembly: AssemblyFileVersion("1.2.2.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]

@@ -21,8 +21,7 @@ settings when it exits normally.
 
 - Warm amber flash on disk read/write activity
 - Dedicated tray icon that mirrors the activity state
-- Selectable tray display: activity point, five-step level meter, or static icon
-- Optional native Windows taskbar activity meter with a compact status window
+- Selectable full-icon tray display: classic flash, eight-step level meter, or static icon
 - Native Windows color picker with live preview
 - Optional activity-level mode that maps disk throughput to brightness
 - Tray status showing whether the MK212 is connected
@@ -41,7 +40,7 @@ settings when it exits normally.
 
 ## Install
 
-The recommended option is `MK212-DriveGlow-Setup-v1.2.2.exe`. It installs for
+The recommended option is `MK212-DriveGlow-Setup-v1.3.0.exe`. It installs for
 the current user without administrator rights, adds a Start menu shortcut, and
 offers to start DriveGlow automatically when signing in to Windows.
 
@@ -72,11 +71,10 @@ Right-click the icon to inspect its status, choose the indicator color with an
 immediate preview on the keyboard, enable
 or disable automatic start, or exit and restore the previous lighting state.
 
-The **Tray display** submenu independently selects an activity point, a
-five-step level meter, or a static application icon. The optional **Activity in
-the taskbar** item creates a dedicated DriveGlow taskbar button whose native
-Windows progress indicator follows disk activity. Clicking the button opens a
-compact window with the current percentage. This option is disabled by default.
+The **Tray display** submenu independently selects a classic full-icon flash, an
+eight-step meter that fills the entire icon, or a static application icon. The
+notification icon itself is the compact status display beside the clock; no
+additional taskbar button or window is created.
 
 ## Uninstall
 
