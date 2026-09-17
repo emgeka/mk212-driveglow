@@ -41,7 +41,7 @@ settings when it exits normally.
 
 ## Install
 
-The recommended option is `MK212-DriveGlow-Setup-v1.2.1.exe`. It installs for
+The recommended option is `MK212-DriveGlow-Setup-v1.2.2.exe`. It installs for
 the current user without administrator rights, adds a Start menu shortcut, and
 offers to start DriveGlow automatically when signing in to Windows.
 
@@ -59,6 +59,9 @@ The application starts immediately and registers itself for the current user's
 Windows sign-in. Its drive-shaped icon appears in the notification area and a
 startup notification points to it. Windows may initially place the icon in the
 overflow menu; drag it from there onto the taskbar to keep it visible.
+
+DriveGlow re-registers the notification icon a few seconds after sign-in and
+automatically restores it when Windows Explorer or the taskbar is restarted.
 
 Automatic startup uses a shortcut in the current user's Windows Startup folder.
 Older registry-based startup entries are migrated automatically and repaired if

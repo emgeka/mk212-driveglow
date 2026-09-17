@@ -1,5 +1,5 @@
 #define MyAppName "MK212 DriveGlow"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "1.2.2"
 #define MyAppExeName "MK212-DriveGlow.exe"
 
 [Setup]

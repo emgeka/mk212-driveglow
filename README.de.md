@@ -15,7 +15,7 @@ Die Tastenbeleuchtung bleibt unverändert.
 ## Einrichtung
 
 Am einfachsten ist die Installation mit
-`MK212-DriveGlow-Setup-v1.2.1.exe`. Der Assistent installiert DriveGlow ohne
+`MK212-DriveGlow-Setup-v1.2.2.exe`. Der Assistent installiert DriveGlow ohne
 Administratorrechte, legt einen Startmenüeintrag an und bietet den automatischen
 Start bei der Windows-Anmeldung an.
 
@@ -33,6 +33,10 @@ durch eine Benachrichtigung kenntlich gemacht. Es zeigt den Verbindungsstatus
 und blinkt zusammen mit der Tastaturleiste bei Zugriffen. Windows kann es
 anfangs im ausgeblendeten Bereich ablegen; von dort kann es auf die Taskleiste
 gezogen werden.
+
+DriveGlow registriert das Symbol einige Sekunden nach dem Anmelden erneut und
+stellt es auch nach einem Neustart von Windows Explorer beziehungsweise der
+Taskleiste automatisch wieder her.
 
 Per Rechtsklick lässt sich die Anzeigefarbe im originalen Windows-Farbdialog
 wählen und direkt auf der Lichtleiste ansehen. Der automatische Start lässt sich

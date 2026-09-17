@@ -93,13 +93,18 @@ internal static class Program
 
     private static void ReportFatalError(Exception exception, bool showMessage)
     {
+        string report = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + exception + Environment.NewLine + Environment.NewLine;
         try
         {
             string directory = Path.GetDirectoryName(ErrorLogPath);
             Directory.CreateDirectory(directory);
-            File.AppendAllText(ErrorLogPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + exception + Environment.NewLine + Environment.NewLine);
+            File.AppendAllText(ErrorLogPath, report);
         }
-        catch { }
+        catch
+        {
+            try { File.AppendAllText(ExePath + ".error.log", report); }
+            catch { }
+        }
 
         if (showMessage)
         {
@@ -131,12 +136,19 @@ internal static class Program
                     CreateStartupShortcut();
                     shortcutCreated = true;
                 }
-                catch
+                catch (Exception shortcutError)
                 {
-                    using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKey))
+                    try
                     {
-                        key.SetValue(RunValue, "\"" + ExePath + "\"");
-                        key.DeleteValue(LegacyRunValue, false);
+                        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKey))
+                        {
+                            key.SetValue(RunValue, "\"" + ExePath + "\"");
+                            key.DeleteValue(LegacyRunValue, false);
+                        }
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        if (!File.Exists(StartupShortcutPath)) throw shortcutError;
                     }
                 }
                 if (shortcutCreated)
@@ -398,6 +410,8 @@ internal static class Program
         private readonly Thread worker;
         private readonly SynchronizationContext ui;
         private readonly RegisteredWaitHandle stopWatcher;
+        private readonly System.Windows.Forms.Timer trayRegistrationTimer;
+        private readonly TaskbarRestartWindow taskbarRestartWindow;
         private Icon activeIcon;
         private Icon idleIcon;
         private Icon staticIcon;
@@ -496,6 +510,14 @@ internal static class Program
                 MessageBox.Show(status.Text + "\r\n\r\nRechtsklick auf das Laufwerkssymbol öffnet das Menü.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
             icon.ShowBalloonTip(7000);
+            taskbarRestartWindow = new TaskbarRestartWindow(ReRegisterTrayIcon);
+            trayRegistrationTimer = new System.Windows.Forms.Timer { Interval = 8000 };
+            trayRegistrationTimer.Tick += delegate
+            {
+                trayRegistrationTimer.Stop();
+                ReRegisterTrayIcon();
+            };
+            trayRegistrationTimer.Start();
             UpdateTaskbarWindow();
 
             worker = new Thread(WorkerLoop) { IsBackground = true, Name = AppName };
@@ -520,6 +542,15 @@ internal static class Program
                 icon.Icon = stateIcon;
                 lastTrayLevel = -1;
             }, null);
+        }
+
+        private void ReRegisterTrayIcon()
+        {
+            if (stop.WaitOne(0)) return;
+            icon.Visible = false;
+            icon.Visible = true;
+            lastTrayLevel = -1;
+            UpdateActivityDisplays(latestActivityLevel, latestActive);
         }
 
         private void SetActivity(bool active)
@@ -715,6 +746,8 @@ internal static class Program
             {
                 icon.Dispose();
                 stopWatcher.Unregister(null);
+                trayRegistrationTimer.Dispose();
+                taskbarRestartWindow.Dispose();
                 activeIcon.Dispose();
                 idleIcon.Dispose();
                 staticIcon.Dispose();
@@ -724,6 +757,33 @@ internal static class Program
             }
             base.Dispose(disposing);
         }
+    }
+}
+
+internal sealed class TaskbarRestartWindow : NativeWindow, IDisposable
+{
+    private readonly int taskbarCreatedMessage;
+    private readonly Action callback;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int RegisterWindowMessage(string message);
+
+    public TaskbarRestartWindow(Action onTaskbarCreated)
+    {
+        callback = onTaskbarCreated;
+        taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
+        CreateHandle(new CreateParams());
+    }
+
+    protected override void WndProc(ref Message message)
+    {
+        if (message.Msg == taskbarCreatedMessage && callback != null) callback();
+        base.WndProc(ref message);
+    }
+
+    public void Dispose()
+    {
+        if (Handle != IntPtr.Zero) DestroyHandle();
     }
 }
 
