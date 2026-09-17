@@ -14,7 +14,8 @@ using Microsoft.Win32.SafeHandles;
 internal static class Program
 {
     private const string AppName = "MK212 DriveGlow";
-    private const string RunValue = "MK212DiskActivityLight";
+    private const string RunValue = "MK212DriveGlow";
+    private const string LegacyRunValue = "MK212DiskActivityLight";
     private const string SettingsKey = @"Software\MK212DiskActivityLight";
     private const string StopEventName = "Local\\MK212DiskActivityLightStop";
     private const string MutexName = "Local\\MK212DiskActivityLightInstance";
@@ -22,6 +23,12 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += delegate(object sender, ThreadExceptionEventArgs e) { ReportFatalError(e.Exception, true); };
+        AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs e)
+        {
+            ReportFatalError(e.ExceptionObject as Exception ?? new Exception(e.ExceptionObject == null ? "Unknown error" : e.ExceptionObject.ToString()), false);
+        };
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
@@ -33,6 +40,11 @@ internal static class Program
         if (args.Length > 0 && args[0].Equals("--uninstall", StringComparison.OrdinalIgnoreCase))
         {
             Uninstall();
+            return;
+        }
+        if (args.Length > 0 && args[0].Equals("--shutdown", StringComparison.OrdinalIgnoreCase))
+        {
+            SignalStop();
             return;
         }
         if (args.Length > 0 && args[0].Equals("--test", StringComparison.OrdinalIgnoreCase))
@@ -50,6 +62,7 @@ internal static class Program
         using (var mutex = new Mutex(true, MutexName, out created))
         {
             if (!created) return;
+            MigrateStartupEntry();
             using (var stop = new EventWaitHandle(false, EventResetMode.ManualReset, StopEventName))
             {
                 stop.Reset();
@@ -60,19 +73,66 @@ internal static class Program
 
     private static string ExePath { get { return Process.GetCurrentProcess().MainModule.FileName; } }
 
+    private static string ErrorLogPath
+    {
+        get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MK212 DriveGlow", "error.log"); }
+    }
+
+    private static void ReportFatalError(Exception exception, bool showMessage)
+    {
+        try
+        {
+            string directory = Path.GetDirectoryName(ErrorLogPath);
+            Directory.CreateDirectory(directory);
+            File.AppendAllText(ErrorLogPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine + exception + Environment.NewLine + Environment.NewLine);
+        }
+        catch { }
+
+        if (showMessage)
+        {
+            try
+            {
+                MessageBox.Show("DriveGlow musste wegen eines Fehlers beendet werden. Ein Fehlerbericht wurde hier gespeichert:\r\n\r\n" + ErrorLogPath,
+                    AppName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch { }
+            Application.Exit();
+        }
+    }
+
     internal static bool StartupEnabled
     {
         get
         {
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
-                return key != null && key.GetValue(RunValue) != null;
+                return key != null && (key.GetValue(RunValue) != null || key.GetValue(LegacyRunValue) != null);
         }
         set
         {
             using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
             {
-                if (value) key.SetValue(RunValue, "\"" + ExePath + "\"");
-                else key.DeleteValue(RunValue, false);
+                if (value)
+                {
+                    key.SetValue(RunValue, "\"" + ExePath + "\"");
+                    key.DeleteValue(LegacyRunValue, false);
+                }
+                else
+                {
+                    key.DeleteValue(RunValue, false);
+                    key.DeleteValue(LegacyRunValue, false);
+                }
+            }
+        }
+    }
+
+    private static void MigrateStartupEntry()
+    {
+        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+        {
+            if (key.GetValue(RunValue) != null || key.GetValue(LegacyRunValue) != null)
+            {
+                key.SetValue(RunValue, "\"" + ExePath + "\"");
+                key.DeleteValue(LegacyRunValue, false);
             }
         }
     }
@@ -115,6 +175,42 @@ internal static class Program
         }
     }
 
+    internal static int TrayDisplayMode
+    {
+        get
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(SettingsKey))
+            {
+                object stored = key == null ? null : key.GetValue("TrayDisplayMode");
+                int mode;
+                if (stored != null && int.TryParse(stored.ToString(), out mode) && mode >= 0 && mode <= 2) return mode;
+            }
+            return 1;
+        }
+        set
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(SettingsKey))
+                key.SetValue("TrayDisplayMode", Math.Max(0, Math.Min(2, value)), RegistryValueKind.DWord);
+        }
+    }
+
+    internal static bool TaskbarDisplayEnabled
+    {
+        get
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(SettingsKey))
+            {
+                object stored = key == null ? null : key.GetValue("TaskbarDisplayEnabled");
+                return stored != null && stored.ToString() == "1";
+            }
+        }
+        set
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(SettingsKey))
+                key.SetValue("TaskbarDisplayEnabled", value ? 1 : 0, RegistryValueKind.DWord);
+        }
+    }
+
     private static void ToKeyboardHsv(Color color, out byte hue, out byte saturation)
     {
         hue = (byte)Math.Round((color.GetHue() / 360.0) * 255.0);
@@ -132,14 +228,36 @@ internal static class Program
 
     private static void Uninstall()
     {
-        try
-        {
-            using (var stop = EventWaitHandle.OpenExisting(StopEventName)) stop.Set();
-            Thread.Sleep(600);
-        }
-        catch (WaitHandleCannotBeOpenedException) { }
+        SignalStop();
         StartupEnabled = false;
         MessageBox.Show("Der automatische Start wurde entfernt. Die vorherige Beleuchtungseinstellung wurde wiederhergestellt, sofern die Tastatur verbunden war.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private static void SignalStop()
+    {
+        try
+        {
+            using (var stop = new EventWaitHandle(false, EventResetMode.ManualReset, StopEventName)) stop.Set();
+            Thread.Sleep(2200);
+        }
+        catch (UnauthorizedAccessException) { }
+
+        Process current = Process.GetCurrentProcess();
+        foreach (Process process in Process.GetProcessesByName("MK212-DriveGlow"))
+        {
+            try
+            {
+                if (process.Id != current.Id && process.SessionId == current.SessionId &&
+                    string.Equals(process.MainModule.FileName, ExePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    process.Kill();
+                    process.WaitForExit(1500);
+                }
+            }
+            catch (Win32Exception) { }
+            catch (InvalidOperationException) { }
+            finally { process.Dispose(); }
+        }
     }
 
     private static void TestLight()
@@ -207,13 +325,22 @@ internal static class Program
         private readonly ToolStripMenuItem status;
         private readonly Thread worker;
         private readonly SynchronizationContext ui;
+        private readonly RegisteredWaitHandle stopWatcher;
         private Icon activeIcon;
         private Icon idleIcon;
+        private Icon staticIcon;
+        private Icon[] levelIcons;
         private readonly Icon waitingIcon;
         private int activityColorArgb;
         private int colorRevision;
         private int previewMode;
         private int displayMode;
+        private int trayDisplayMode;
+        private int lastTrayLevel = -1;
+        private double latestActivityLevel;
+        private bool latestActive;
+        private TaskbarStatusForm taskbarForm;
+        private ToolStripMenuItem taskbarDisplay;
 
         public TrayContext(EventWaitHandle stopEvent)
         {
@@ -221,9 +348,9 @@ internal static class Program
             ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
             Color savedColor = ActivityColor;
             displayMode = DisplayMode;
+            trayDisplayMode = TrayDisplayMode;
             activityColorArgb = savedColor.ToArgb();
-            activeIcon = TrayIcon.Create(savedColor);
-            idleIcon = TrayIcon.Create(Dim(savedColor));
+            BuildTrayIcons(savedColor);
             waitingIcon = TrayIcon.Create(Color.FromArgb(95, 95, 95));
             status = new ToolStripMenuItem("Tastatur wird gesucht …") { Enabled = false };
             var menu = new ContextMenuStrip();
@@ -252,6 +379,32 @@ internal static class Program
             displayType.DropDownItems.Add(classicMode);
             displayType.DropDownItems.Add(levelMode);
             menu.Items.Add(displayType);
+            var trayDisplay = new ToolStripMenuItem("Tray-Anzeige");
+            var trayPoint = new ToolStripMenuItem("Aktivit\u00e4tspunkt") { Checked = trayDisplayMode == 0 };
+            var trayLevel = new ToolStripMenuItem("Aktivit\u00e4tspegel") { Checked = trayDisplayMode == 1 };
+            var trayStatic = new ToolStripMenuItem("Nur App-Symbol") { Checked = trayDisplayMode == 2 };
+            ToolStripMenuItem[] trayChoices = { trayPoint, trayLevel, trayStatic };
+            for (int i = 0; i < trayChoices.Length; i++)
+            {
+                int selectedMode = i;
+                trayChoices[i].Click += delegate
+                {
+                    TrayDisplayMode = selectedMode;
+                    Interlocked.Exchange(ref trayDisplayMode, selectedMode);
+                    for (int choice = 0; choice < trayChoices.Length; choice++) trayChoices[choice].Checked = choice == selectedMode;
+                    lastTrayLevel = -1;
+                    UpdateActivityDisplays(latestActivityLevel, latestActive);
+                };
+                trayDisplay.DropDownItems.Add(trayChoices[i]);
+            }
+            menu.Items.Add(trayDisplay);
+            taskbarDisplay = new ToolStripMenuItem("Aktivit\u00e4t in der Taskleiste") { CheckOnClick = true, Checked = TaskbarDisplayEnabled };
+            taskbarDisplay.CheckedChanged += delegate
+            {
+                TaskbarDisplayEnabled = taskbarDisplay.Checked;
+                UpdateTaskbarWindow();
+            };
+            menu.Items.Add(taskbarDisplay);
             var startup = new ToolStripMenuItem("Beim Anmelden starten") { CheckOnClick = true, Checked = StartupEnabled };
             startup.CheckedChanged += delegate
             {
@@ -271,21 +424,19 @@ internal static class Program
                 MessageBox.Show(status.Text + "\r\n\r\nRechtsklick auf das Laufwerkssymbol öffnet das Menü.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
             icon.ShowBalloonTip(7000);
+            UpdateTaskbarWindow();
 
             worker = new Thread(WorkerLoop) { IsBackground = true, Name = AppName };
             worker.Start();
-            var watcher = new System.Windows.Forms.Timer { Interval = 250 };
-            watcher.Tick += delegate
+            stopWatcher = ThreadPool.RegisterWaitForSingleObject(stop, delegate
             {
-                if (stop.WaitOne(0))
+                ui.Post(delegate
                 {
-                    watcher.Stop();
                     icon.Visible = false;
                     if (worker.IsAlive) worker.Join(1500);
                     ExitThread();
-                }
-            };
-            watcher.Start();
+                }, null);
+            }, null, Timeout.Infinite, true);
         }
 
         private void SetStatus(string text, Icon stateIcon)
@@ -295,12 +446,56 @@ internal static class Program
                 status.Text = text;
                 icon.Text = (AppName + " – " + text).Substring(0, Math.Min(63, (AppName + " – " + text).Length));
                 icon.Icon = stateIcon;
+                lastTrayLevel = -1;
             }, null);
         }
 
         private void SetActivity(bool active)
         {
-            ui.Post(delegate { icon.Icon = active ? activeIcon : idleIcon; }, null);
+            SetActivityLevel(active ? 1.0 : 0.0, active);
+        }
+
+        private void SetActivityLevel(double level, bool active)
+        {
+            ui.Post(delegate { UpdateActivityDisplays(level, active); }, null);
+        }
+
+        private void UpdateActivityDisplays(double level, bool active)
+        {
+            latestActivityLevel = Math.Max(0, Math.Min(1, level));
+            latestActive = active;
+            int mode = Thread.VolatileRead(ref trayDisplayMode);
+            int trayLevel = mode == 0 ? (active ? 5 : 0) : mode == 1 ? (int)Math.Ceiling(latestActivityLevel * 5.0) : 0;
+            if (trayLevel != lastTrayLevel)
+            {
+                lastTrayLevel = trayLevel;
+                icon.Icon = mode == 0 ? (active ? activeIcon : idleIcon) : mode == 1 ? levelIcons[trayLevel] : staticIcon;
+            }
+            if (taskbarForm != null) taskbarForm.SetActivity(latestActivityLevel);
+        }
+
+        private void UpdateTaskbarWindow()
+        {
+            if (taskbarDisplay.Checked)
+            {
+                if (taskbarForm == null || taskbarForm.IsDisposed)
+                {
+                    taskbarForm = new TaskbarStatusForm(Color.FromArgb(activityColorArgb));
+                    taskbarForm.FormClosed += delegate
+                    {
+                        taskbarForm = null;
+                        if (taskbarDisplay.Checked) taskbarDisplay.Checked = false;
+                    };
+                    taskbarForm.Show();
+                    taskbarForm.SetActivity(latestActivityLevel);
+                }
+            }
+            else if (taskbarForm != null)
+            {
+                TaskbarStatusForm closing = taskbarForm;
+                taskbarForm = null;
+                closing.Close();
+            }
         }
 
         private void ChooseColor()
@@ -322,15 +517,32 @@ internal static class Program
             activityColorArgb = selected.ToArgb();
             Interlocked.Increment(ref colorRevision);
 
-            Icon newActive = TrayIcon.Create(selected);
-            Icon newIdle = TrayIcon.Create(Dim(selected));
-            icon.Icon = newActive;
+            BuildTrayIcons(selected);
+            lastTrayLevel = -1;
+            UpdateActivityDisplays(latestActivityLevel, latestActive);
+            if (taskbarForm != null) taskbarForm.ActivityColor = selected;
+        }
+
+        private void BuildTrayIcons(Color color)
+        {
+            Icon newActive = TrayIcon.Create(color);
+            Icon newIdle = TrayIcon.Create(Dim(color));
+            Icon newStatic = TrayIcon.CreateStatic();
+            Icon[] newLevels = new Icon[6];
+            for (int i = 0; i < newLevels.Length; i++) newLevels[i] = TrayIcon.CreateLevel(color, i);
+
             Icon oldActive = activeIcon;
             Icon oldIdle = idleIcon;
+            Icon oldStatic = staticIcon;
+            Icon[] oldLevels = levelIcons;
             activeIcon = newActive;
             idleIcon = newIdle;
-            oldActive.Dispose();
-            oldIdle.Dispose();
+            staticIcon = newStatic;
+            levelIcons = newLevels;
+            if (oldActive != null) oldActive.Dispose();
+            if (oldIdle != null) oldIdle.Dispose();
+            if (oldStatic != null) oldStatic.Dispose();
+            if (oldLevels != null) foreach (Icon old in oldLevels) old.Dispose();
         }
 
         private static Color Dim(Color color)
@@ -379,6 +591,10 @@ internal static class Program
                                 }
                                 bool previewing = Thread.VolatileRead(ref previewMode) != 0;
                                 double bytesPerSecond = disk.Sample();
+                                double instantaneous = bytesPerSecond < 4096 ? 0 :
+                                    Math.Log10(1.0 + bytesPerSecond / 4096.0) / Math.Log10(1.0 + 250000000.0 / 4096.0);
+                                instantaneous = Math.Max(0, Math.Min(1, instantaneous));
+                                activityLevel = Math.Max(instantaneous, activityLevel * 0.78);
                                 int mode = Thread.VolatileRead(ref displayMode);
                                 int wantedBrightness;
                                 if (previewing)
@@ -387,15 +603,10 @@ internal static class Program
                                 }
                                 else if (mode == 1)
                                 {
-                                    double instantaneous = bytesPerSecond < 4096 ? 0 :
-                                        Math.Log10(1.0 + bytesPerSecond / 4096.0) / Math.Log10(1.0 + 250000000.0 / 4096.0);
-                                    instantaneous = Math.Max(0, Math.Min(1, instantaneous));
-                                    activityLevel = Math.Max(instantaneous, activityLevel * 0.78);
                                     wantedBrightness = activityLevel < 0.025 ? 0 : (int)Math.Round(12 + activityLevel * 148);
                                 }
                                 else
                                 {
-                                    activityLevel = 0;
                                     if (bytesPerSecond >= 4096) lastActivity = DateTime.UtcNow;
                                     wantedBrightness = (DateTime.UtcNow - lastActivity).TotalMilliseconds < 130 ? 120 : 0;
                                 }
@@ -408,8 +619,8 @@ internal static class Program
                                 if (isActive != trayActive)
                                 {
                                     trayActive = isActive;
-                                    SetActivity(trayActive);
                                 }
+                                SetActivityLevel(previewing ? 0.75 : activityLevel, trayActive || previewing);
                             }
                         }
                         finally
@@ -431,9 +642,13 @@ internal static class Program
             if (disposing)
             {
                 icon.Dispose();
+                stopWatcher.Unregister(null);
                 activeIcon.Dispose();
                 idleIcon.Dispose();
+                staticIcon.Dispose();
+                foreach (Icon levelIcon in levelIcons) levelIcon.Dispose();
                 waitingIcon.Dispose();
+                if (taskbarForm != null) taskbarForm.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -907,6 +1122,158 @@ internal static class TrayIcon
             finally { DestroyIcon(handle); }
         }
     }
+
+    public static Icon CreateStatic()
+    {
+        return Create(Color.FromArgb(105, 170, 225));
+    }
+
+    public static Icon CreateLevel(Color led, int level)
+    {
+        level = Math.Max(0, Math.Min(5, level));
+        using (var bitmap = new Bitmap(32, 32, PixelFormat.Format32bppArgb))
+        using (Graphics g = Graphics.FromImage(bitmap))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.Transparent);
+            using (var body = new SolidBrush(Color.FromArgb(47, 52, 58)))
+            using (var edge = new Pen(Color.FromArgb(220, 225, 230), 2.2f))
+            using (var platter = new Pen(Color.FromArgb(150, 165, 180), 1.6f))
+            using (var on = new SolidBrush(led))
+            using (var off = new SolidBrush(Color.FromArgb(75, 82, 90)))
+            {
+                g.FillRectangle(body, 3, 5, 26, 22);
+                g.DrawRectangle(edge, 4, 6, 24, 20);
+                g.DrawEllipse(platter, 10, 8, 11, 11);
+                g.DrawLine(platter, 17, 15, 23, 10);
+                for (int i = 0; i < 5; i++)
+                    g.FillRectangle(i < level ? on : off, 6 + i * 4, 21, 3, 3);
+            }
+            IntPtr handle = bitmap.GetHicon();
+            try { return (Icon)Icon.FromHandle(handle).Clone(); }
+            finally { DestroyIcon(handle); }
+        }
+    }
+}
+
+internal sealed class TaskbarStatusForm : Form
+{
+    private readonly Label activityText;
+    private readonly ProgressBar activityBar;
+    private ITaskbarList3 taskbar;
+    private double pendingActivity;
+
+    public Color ActivityColor
+    {
+        set
+        {
+            Icon old = Icon;
+            Icon = TrayIcon.Create(value);
+            if (old != null) old.Dispose();
+        }
+    }
+
+    public TaskbarStatusForm(Color color)
+    {
+        Text = "MK212 DriveGlow – Laufwerksaktivität";
+        ClientSize = new Size(340, 92);
+        MinimumSize = new Size(300, 130);
+        MaximizeBox = false;
+        StartPosition = FormStartPosition.CenterScreen;
+        Icon = TrayIcon.Create(color);
+
+        activityText = new Label
+        {
+            AutoSize = false,
+            Location = new Point(16, 14),
+            Size = new Size(308, 24),
+            Text = "Datenträgeraktivität: 0 %"
+        };
+        activityBar = new ProgressBar
+        {
+            Location = new Point(16, 44),
+            Size = new Size(308, 22),
+            Minimum = 0,
+            Maximum = 100
+        };
+        Controls.Add(activityText);
+        Controls.Add(activityBar);
+
+        Shown += delegate
+        {
+            try
+            {
+                taskbar = (ITaskbarList3)new TaskbarList();
+                taskbar.HrInit();
+                ApplyActivity();
+            }
+            catch { taskbar = null; }
+            BeginInvoke((MethodInvoker)delegate { WindowState = FormWindowState.Minimized; });
+        };
+    }
+
+    protected override bool ShowWithoutActivation { get { return true; } }
+
+    public void SetActivity(double level)
+    {
+        pendingActivity = Math.Max(0, Math.Min(1, level));
+        if (IsHandleCreated) ApplyActivity();
+    }
+
+    private void ApplyActivity()
+    {
+        int percent = (int)Math.Round(pendingActivity * 100.0);
+        activityBar.Value = percent;
+        activityText.Text = "Datenträgeraktivität: " + percent + " %";
+        if (taskbar != null)
+        {
+            try
+            {
+                taskbar.SetProgressState(Handle, TaskbarProgressState.Normal);
+                taskbar.SetProgressValue(Handle, (ulong)percent, 100);
+            }
+            catch { }
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            if (taskbar != null && Marshal.IsComObject(taskbar)) Marshal.FinalReleaseComObject(taskbar);
+            taskbar = null;
+            if (Icon != null) Icon.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+}
+
+internal enum TaskbarProgressState
+{
+    NoProgress = 0,
+    Indeterminate = 1,
+    Normal = 2,
+    Error = 4,
+    Paused = 8
+}
+
+[ComImport]
+[Guid("56FDF344-FD6D-11d0-958A-006097C9A090")]
+internal class TaskbarList { }
+
+[ComImport]
+[Guid("EA1AFB91-9E28-4B86-90E9-9E9F8A5EEA84")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface ITaskbarList3
+{
+    void HrInit();
+    void AddTab(IntPtr hwnd);
+    void DeleteTab(IntPtr hwnd);
+    void ActivateTab(IntPtr hwnd);
+    void SetActiveAlt(IntPtr hwnd);
+    void MarkFullscreenWindow(IntPtr hwnd, [MarshalAs(UnmanagedType.Bool)] bool fullscreen);
+    void SetProgressValue(IntPtr hwnd, ulong completed, ulong total);
+    void SetProgressState(IntPtr hwnd, TaskbarProgressState state);
 }
 
 internal sealed class DiskRate : IDisposable

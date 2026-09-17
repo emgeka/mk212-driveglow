@@ -13,8 +13,19 @@ jobs:
       - name: Build application
         shell: cmd
         run: build.cmd
-      - name: Upload executable
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
+        shell: powershell
+        run: .\build-installer.ps1
+      - name: Upload portable executable
         uses: actions/upload-artifact@v4
         with:
-          name: MK212-DriveGlow
+          name: MK212-DriveGlow-portable
           path: dist/MK212-DriveGlow.exe
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: MK212-DriveGlow-Setup
+          path: dist/MK212-DriveGlow-Setup-v1.2.0.exe

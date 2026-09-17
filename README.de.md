@@ -14,6 +14,13 @@ Die Tastenbeleuchtung bleibt unverändert.
 
 ## Einrichtung
 
+Am einfachsten ist die Installation mit
+`MK212-DriveGlow-Setup-v1.2.0.exe`. Der Assistent installiert DriveGlow ohne
+Administratorrechte, legt einen Startmenüeintrag an und bietet den automatischen
+Start bei der Windows-Anmeldung an.
+
+Alternativ kann die portable Einzeldatei verwendet werden:
+
 1. `MK212-DriveGlow.exe` in einem dauerhaften Ordner ablegen.
 2. Folgenden Befehl ausführen:
 
@@ -36,6 +43,13 @@ Einstellung der Seitenleiste wiederhergestellt.
 Unter **Anzeigeart** kann zwischen dem klassischen Blinken und dem
 **Aktivitätspegel** gewechselt werden. Der Pegel bildet die gemessene
 Datenträgerrate logarithmisch auf die Helligkeit der gesamten Seitenleiste ab.
+
+Unter **Tray-Anzeige** lässt sich unabhängig davon auswählen, ob das
+Laufwerkssymbol einen einfachen Aktivitätspunkt, einen fünfstufigen Pegel oder
+nur das statische App-Symbol zeigt. Die optionale **Aktivität in der Taskleiste**
+öffnet einen eigenen DriveGlow-Taskleistenknopf und bildet die Auslastung mit dem
+nativen Windows-Fortschrittsbalken ab. Ein Klick auf den Knopf zeigt zusätzlich
+den aktuellen Prozentwert. Die Taskleistenanzeige ist standardmäßig deaktiviert.
 
 ## SignalRGB
 
@@ -78,6 +92,9 @@ keinen kopierten Firmwarecode der Tastatur.
 
 ## Entfernen
 
+Bei Verwendung des Installers kann DriveGlow normal über **Installierte Apps**
+in den Windows-Einstellungen entfernt werden. Für die portable Ausgabe gilt:
+
 ```powershell
 .\MK212-DriveGlow.exe --uninstall
 ```
@@ -88,6 +105,13 @@ Anschließend kann die EXE gelöscht werden.
 
 ```text
 build.cmd
+```
+
+Für den Setup-Installer wird zusätzlich
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) benötigt:
+
+```text
+build-installer.cmd
 ```
 
 Es sind keine zusätzlichen Pakete und kein separates .NET SDK erforderlich.

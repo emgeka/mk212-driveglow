@@ -21,6 +21,8 @@ settings when it exits normally.
 
 - Warm amber flash on disk read/write activity
 - Dedicated tray icon that mirrors the activity state
+- Selectable tray display: activity point, five-step level meter, or static icon
+- Optional native Windows taskbar activity meter with a compact status window
 - Native Windows color picker with live preview
 - Optional activity-level mode that maps disk throughput to brightness
 - Tray status showing whether the MK212 is connected
@@ -39,6 +41,12 @@ settings when it exits normally.
 
 ## Install
 
+The recommended option is `MK212-DriveGlow-Setup-v1.2.0.exe`. It installs for
+the current user without administrator rights, adds a Start menu shortcut, and
+offers to start DriveGlow automatically when signing in to Windows.
+
+For portable use:
+
 1. Download `MK212-DriveGlow.exe` from the latest release.
 2. Put it in a permanent folder.
 3. Run:
@@ -56,7 +64,16 @@ Right-click the icon to inspect its status, choose the indicator color with an
 immediate preview on the keyboard, enable
 or disable automatic start, or exit and restore the previous lighting state.
 
+The **Tray display** submenu independently selects an activity point, a
+five-step level meter, or a static application icon. The optional **Activity in
+the taskbar** item creates a dedicated DriveGlow taskbar button whose native
+Windows progress indicator follows disk activity. Clicking the button opens a
+compact window with the current percentage. This option is disabled by default.
+
 ## Uninstall
+
+Installer users can remove DriveGlow normally from **Installed apps** in Windows
+Settings. For the portable version, run:
 
 Run:
 
@@ -85,6 +102,10 @@ build.cmd
 The executable is written to `dist/` using the C# compiler included with the
 .NET Framework. `build.cmd` applies the execution-policy override only to this
 single build process and does not change the system policy.
+
+Building the setup executable additionally requires
+[Inno Setup 6](https://jrsoftware.org/isinfo.php). Run `build-installer.cmd`; the
+result is written to `dist/` alongside the portable executable.
 
 ## SignalRGB and other RGB applications
 
