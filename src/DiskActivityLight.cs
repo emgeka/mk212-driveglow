@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -17,6 +18,9 @@ internal static class Program
     private const string RunValue = "MK212DriveGlow";
     private const string LegacyRunValue = "MK212DiskActivityLight";
     private const string SettingsKey = @"Software\MK212DiskActivityLight";
+    private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string StartupApprovedRunKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+    private const string StartupApprovedFolderKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder";
     private const string StopEventName = "Local\\MK212DiskActivityLightStop";
     private const string MutexName = "Local\\MK212DiskActivityLightInstance";
 
@@ -47,6 +51,11 @@ internal static class Program
             SignalStop();
             return;
         }
+        if (args.Length > 0 && args[0].Equals("--repair-startup", StringComparison.OrdinalIgnoreCase))
+        {
+            StartupEnabled = true;
+            return;
+        }
         if (args.Length > 0 && args[0].Equals("--test", StringComparison.OrdinalIgnoreCase))
         {
             TestLight();
@@ -72,6 +81,10 @@ internal static class Program
     }
 
     private static string ExePath { get { return Process.GetCurrentProcess().MainModule.FileName; } }
+    private static string StartupShortcutPath
+    {
+        get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), AppName + ".lnk"); }
+    }
 
     private static string ErrorLogPath
     {
@@ -104,37 +117,96 @@ internal static class Program
     {
         get
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+            if (File.Exists(StartupShortcutPath)) return true;
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RunKey))
                 return key != null && (key.GetValue(RunValue) != null || key.GetValue(LegacyRunValue) != null);
         }
         set
         {
-            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+            if (value)
             {
-                if (value)
+                bool shortcutCreated = false;
+                try
                 {
-                    key.SetValue(RunValue, "\"" + ExePath + "\"");
-                    key.DeleteValue(LegacyRunValue, false);
+                    CreateStartupShortcut();
+                    shortcutCreated = true;
                 }
-                else
+                catch
                 {
-                    key.DeleteValue(RunValue, false);
-                    key.DeleteValue(LegacyRunValue, false);
+                    using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKey))
+                    {
+                        key.SetValue(RunValue, "\"" + ExePath + "\"");
+                        key.DeleteValue(LegacyRunValue, false);
+                    }
                 }
+                if (shortcutCreated)
+                {
+                    try { DeleteRunEntries(); }
+                    catch (UnauthorizedAccessException) { }
+                }
+                ClearStartupApproval();
+            }
+            else
+            {
+                if (File.Exists(StartupShortcutPath)) File.Delete(StartupShortcutPath);
+                DeleteRunEntries();
             }
         }
     }
 
     private static void MigrateStartupEntry()
     {
-        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+        if (StartupEnabled) StartupEnabled = true;
+    }
+
+    private static void CreateStartupShortcut()
+    {
+        string directory = Path.GetDirectoryName(StartupShortcutPath);
+        Directory.CreateDirectory(directory);
+        Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+        if (shellType == null) throw new InvalidOperationException("Windows Script Host is not available.");
+        object shell = null;
+        object shortcut = null;
+        try
         {
-            if (key.GetValue(RunValue) != null || key.GetValue(LegacyRunValue) != null)
+            shell = Activator.CreateInstance(shellType);
+            shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { StartupShortcutPath });
+            Type shortcutType = shortcut.GetType();
+            shortcutType.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { ExePath });
+            shortcutType.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { Path.GetDirectoryName(ExePath) });
+            shortcutType.InvokeMember("IconLocation", BindingFlags.SetProperty, null, shortcut, new object[] { ExePath + ",0" });
+            shortcutType.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { AppName });
+            shortcutType.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
+        }
+        finally
+        {
+            if (shortcut != null && Marshal.IsComObject(shortcut)) Marshal.FinalReleaseComObject(shortcut);
+            if (shell != null && Marshal.IsComObject(shell)) Marshal.FinalReleaseComObject(shell);
+        }
+    }
+
+    private static void DeleteRunEntries()
+    {
+        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKey))
+        {
+            key.DeleteValue(RunValue, false);
+            key.DeleteValue(LegacyRunValue, false);
+        }
+    }
+
+    private static void ClearStartupApproval()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(StartupApprovedFolderKey))
+                key.DeleteValue(Path.GetFileName(StartupShortcutPath), false);
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(StartupApprovedRunKey))
             {
-                key.SetValue(RunValue, "\"" + ExePath + "\"");
+                key.DeleteValue(RunValue, false);
                 key.DeleteValue(LegacyRunValue, false);
             }
         }
+        catch (UnauthorizedAccessException) { }
     }
 
     internal static Color ActivityColor

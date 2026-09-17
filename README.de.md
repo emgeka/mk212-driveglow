@@ -15,7 +15,7 @@ Die Tastenbeleuchtung bleibt unverändert.
 ## Einrichtung
 
 Am einfachsten ist die Installation mit
-`MK212-DriveGlow-Setup-v1.2.0.exe`. Der Assistent installiert DriveGlow ohne
+`MK212-DriveGlow-Setup-v1.2.1.exe`. Der Assistent installiert DriveGlow ohne
 Administratorrechte, legt einen Startmenüeintrag an und bietet den automatischen
 Start bei der Windows-Anmeldung an.
 
@@ -39,6 +39,12 @@ wählen und direkt auf der Lichtleiste ansehen. Der automatische Start lässt si
 umschalten oder das Programm beenden. Die Farbe wird für den aktuellen
 Windows-Benutzer gespeichert. Beim normalen Beenden wird die vorherige
 Einstellung der Seitenleiste wiederhergestellt.
+
+Der Autostart wird über eine Verknüpfung im persönlichen Windows-Autostartordner
+realisiert. Ältere Registry-Autostarteinträge werden beim nächsten Programmstart
+automatisch übernommen und auf den aktuellen Speicherort repariert.
+Falls eine ältere Installation nicht startet, kann die Verknüpfung außerdem mit
+`MK212-DriveGlow.exe --repair-startup` neu angelegt werden.
 
 Unter **Anzeigeart** kann zwischen dem klassischen Blinken und dem
 **Aktivitätspegel** gewechselt werden. Der Pegel bildet die gemessene
