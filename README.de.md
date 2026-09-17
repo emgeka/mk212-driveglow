@@ -37,10 +37,22 @@ Unter **Anzeigeart** kann zwischen dem klassischen Blinken und dem
 **Aktivitätspegel** gewechselt werden. Der Pegel bildet die gemessene
 Datenträgerrate logarithmisch auf die Helligkeit der gesamten Seitenleiste ab.
 
+## SignalRGB
+
 DriveGlow setzt die gewählte Farbe regelmäßig erneut. Dadurch wird sie nach
 gelegentlichen VIA-Schreibzugriffen anderer RGB-Programme wie SignalRGB wieder
-hergestellt. Steuert ein anderes Programm die MK212 dauerhaft mit hoher
-Aktualisierungsrate, sollte die Tastatur dort nach Möglichkeit ausgeschlossen werden.
+hergestellt. Bei schnell wechselnden Bildschirm- oder Videoeffekten können sich
+beide Programme jedoch gegenseitig überschreiben und sichtbares Flackern verursachen.
+
+Die MK212 muss dafür in SignalRGB nicht vollständig deaktiviert werden. Unter
+**Geräte → OMOTON MK212 (VIA Zone) → Beleuchtung** genügt es, die
+**Accent Bar Brightness** auf `0` zu stellen. SignalRGB kann anschließend die
+Tastenbeleuchtung und das übrige RGB-Setup weiter steuern, während DriveGlow die
+Accent Bar flackerfrei übernimmt.
+
+<p align="center">
+  <img src="assets/signalrgb-accent-bar-zero.png" alt="Accent Bar Brightness der OMOTON MK212 in SignalRGB auf null" width="900">
+</p>
 
 ## Möglicher QMK-/GPL-Lizenzverstoß
 

@@ -95,6 +95,17 @@ controls the MK212 at a high update rate, both programs can still compete and
 cause flickering. Excluding the MK212 from the other application remains the
 cleanest solution when that option is available.
 
+For SignalRGB, the MK212 does not need to be disabled completely. Open
+**Devices → OMOTON MK212 (VIA Zone) → Lighting** and set
+**Accent Bar Brightness** to `0`. SignalRGB can continue controlling the key
+backlight and the rest of the RGB setup, while DriveGlow retains control of the
+accent bar without flickering—even with rapidly changing screen-ambience or
+video effects.
+
+<p align="center">
+  <img src="assets/signalrgb-accent-bar-zero.png" alt="SignalRGB Accent Bar Brightness set to zero for the OMOTON MK212" width="900">
+</p>
+
 ## Technical notes
 
 The official MK212 VIA definition exposes the side light on custom channel `4`:
