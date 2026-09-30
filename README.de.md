@@ -125,6 +125,12 @@ keinen kopierten Firmwarecode der Tastatur.
 
 ## Entfernen
 
+Wenn DriveGlow über WinGet installiert wurde, lässt es sich so entfernen:
+
+```powershell
+winget uninstall --id emgeka.MK212DriveGlow --exact
+```
+
 Bei Verwendung des Installers kann DriveGlow normal über **Installierte Apps**
 in den Windows-Einstellungen entfernt werden. Für die portable Ausgabe gilt:
 

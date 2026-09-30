@@ -103,10 +103,14 @@ additional taskbar button or window is created.
 
 ## Uninstall
 
+If DriveGlow was installed through WinGet, remove it with:
+
+```powershell
+winget uninstall --id emgeka.MK212DriveGlow --exact
+```
+
 Installer users can remove DriveGlow normally from **Installed apps** in Windows
 Settings. For the portable version, run:
-
-Run:
 
 ```powershell
 .\MK212-DriveGlow.exe --uninstall
