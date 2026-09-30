@@ -23,6 +23,19 @@ auswählen. Es werden keine Treiber, Dienste oder Administratorrechte benötigt.
 
 ## Einrichtung
 
+### WinGet
+
+Die [WinGet-Einreichung](https://github.com/microsoft/winget-pkgs/pull/444139)
+hat alle automatischen Prüfungen bestanden und wartet auf die Freigabe durch
+einen Moderator. Sobald sie im WinGet-Community-Repository verfügbar ist, lässt
+sich DriveGlow so installieren:
+
+```powershell
+winget install --id emgeka.MK212DriveGlow --exact
+```
+
+### Installer oder portable App
+
 Am einfachsten ist die Installation mit
 `MK212-DriveGlow-Setup-v1.4.0.exe`. Der Assistent installiert DriveGlow ohne
 Administratorrechte, legt einen Startmenüeintrag an und bietet den automatischen

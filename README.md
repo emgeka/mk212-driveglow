@@ -51,6 +51,18 @@ required.
 
 ## Install
 
+### WinGet
+
+The [WinGet submission](https://github.com/microsoft/winget-pkgs/pull/444139)
+has passed all automated validation and is awaiting moderator approval. Once it
+is available in the WinGet community repository, install DriveGlow with:
+
+```powershell
+winget install --id emgeka.MK212DriveGlow --exact
+```
+
+### Installer or portable app
+
 The recommended option is `MK212-DriveGlow-Setup-v1.4.0.exe`. It installs for
 the current user without administrator rights, adds a Start menu shortcut, and
 offers to start DriveGlow automatically when signing in to Windows.
