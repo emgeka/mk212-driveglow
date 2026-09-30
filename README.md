@@ -160,6 +160,14 @@ backlight and the rest of the RGB setup, while DriveGlow retains control of the
 accent bar without flickering—even with rapidly changing screen-ambience or
 video effects.
 
+For reference and manual testing, the repository includes both the
+[original VIA definition](integrations/omoton-mk212/MK212-original-via.json)
+and the tested
+[SignalRGB plugin](integrations/omoton-mk212/OMOTON_MK212_SignalRGB.js) that
+releases the accent bar when its brightness is set to `0`. See the
+[integration notes](integrations/omoton-mk212/README.md) for the distinction
+between the two files.
+
 <p align="center">
   <img src="assets/signalrgb-accent-bar-zero.png" alt="SignalRGB Accent Bar Brightness set to zero for the OMOTON MK212" width="900">
 </p>

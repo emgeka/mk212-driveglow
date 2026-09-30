@@ -99,6 +99,14 @@ Die MK212 muss dafür in SignalRGB nicht vollständig deaktiviert werden. Unter
 Tastenbeleuchtung und das übrige RGB-Setup weiter steuern, während DriveGlow die
 Accent Bar flackerfrei übernimmt.
 
+Als Referenz und für manuelle Tests enthält das Repository sowohl die
+[originale VIA-Definition](integrations/omoton-mk212/MK212-original-via.json)
+als auch das getestete
+[SignalRGB-Plugin](integrations/omoton-mk212/OMOTON_MK212_SignalRGB.js), das die
+Accent Bar bei einer Helligkeit von `0` freigibt. Die
+[Hinweise zu den Integrationsdateien](integrations/omoton-mk212/README.md)
+erklären den Unterschied zwischen beiden Dateien.
+
 <p align="center">
   <img src="assets/signalrgb-accent-bar-zero.png" alt="Accent Bar Brightness der OMOTON MK212 in SignalRGB auf null" width="900">
 </p>
