@@ -1,8 +1,17 @@
 # MK212 DriveGlow
 
+[![Neueste Version](https://img.shields.io/github/v/release/emgeka/mk212-driveglow)](https://github.com/emgeka/mk212-driveglow/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/emgeka/mk212-driveglow/total)](https://github.com/emgeka/mk212-driveglow/releases)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue.svg)](LICENSE)
+
 Eine kleine Windows-Tray-Anwendung, die ausschließlich die seitliche
 Lichtleiste der **OMOTON MK212** als klassische Datenträger-LED verwendet.
 Die Tastenbeleuchtung bleibt unverändert.
+
+**[Aktuellen Windows-Installer herunterladen](https://github.com/emgeka/mk212-driveglow/releases/latest)**
+
+Installieren, DriveGlow starten und Farbe sowie Anzeigeart über das Trayicon
+auswählen. Es werden keine Treiber, Dienste oder Administratorrechte benötigt.
 
 <p align="center">
   <img src="assets/mk212-side-light.png" alt="Die Seitenleuchte der OMOTON MK212 zeigt Datenträgeraktivität" width="520">

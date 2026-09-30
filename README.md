@@ -2,12 +2,22 @@
 
 ![Application icon](assets/icon.svg)
 
+[![Latest release](https://img.shields.io/github/v/release/emgeka/mk212-driveglow)](https://github.com/emgeka/mk212-driveglow/releases/latest)
+[![Release downloads](https://img.shields.io/github/downloads/emgeka/mk212-driveglow/total)](https://github.com/emgeka/mk212-driveglow/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A tiny dependency-free Windows tray application that uses the **side light of
 the OMOTON MK212 keyboard** as a classic disk activity indicator.
 
 The key backlight is left untouched. The application talks directly to the
 keyboard's VIA/QMK-compatible HID interface and restores the previous side-light
 settings when it exits normally.
+
+**[Download the latest Windows installer](https://github.com/emgeka/mk212-driveglow/releases/latest)**
+
+Install it, start DriveGlow, and use the tray icon to choose the indicator
+color and activity mode. No drivers, services, or administrator rights are
+required.
 
 <p align="center">
   <img src="assets/mk212-side-light.png" alt="OMOTON MK212 side light showing disk activity" width="520">
