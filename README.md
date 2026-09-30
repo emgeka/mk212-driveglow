@@ -1,5 +1,7 @@
 # MK212 DriveGlow
 
+![MK212 DriveGlow — disk activity on the OMOTON MK212 side light](assets/social-preview.jpg)
+
 ![Application icon](assets/icon.svg)
 
 [![Latest release](https://img.shields.io/github/v/release/emgeka/mk212-driveglow)](https://github.com/emgeka/mk212-driveglow/releases/latest)

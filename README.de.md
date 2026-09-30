@@ -1,5 +1,7 @@
 # MK212 DriveGlow
 
+![MK212 DriveGlow — Datenträgeraktivität auf der Seitenleuchte der OMOTON MK212](assets/social-preview.jpg)
+
 [![Neueste Version](https://img.shields.io/github/v/release/emgeka/mk212-driveglow)](https://github.com/emgeka/mk212-driveglow/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/emgeka/mk212-driveglow/total)](https://github.com/emgeka/mk212-driveglow/releases)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue.svg)](LICENSE)
