@@ -24,6 +24,7 @@ settings when it exits normally.
 - Selectable full-icon tray display: classic flash, eight-step level meter, or static icon
 - Native Windows color picker with live preview
 - Optional activity-level mode that maps disk throughput to brightness
+- Settings dialog with an About tab, application version, and repository link
 - Tray status showing whether the MK212 is connected
 - Optional automatic start when signing in to Windows
 - Automatic reconnect when the keyboard is unplugged and connected again
@@ -40,7 +41,7 @@ settings when it exits normally.
 
 ## Install
 
-The recommended option is `MK212-DriveGlow-Setup-v1.3.0.exe`. It installs for
+The recommended option is `MK212-DriveGlow-Setup-v1.4.0.exe`. It installs for
 the current user without administrator rights, adds a Start menu shortcut, and
 offers to start DriveGlow automatically when signing in to Windows.
 
@@ -69,7 +70,9 @@ the shortcut manually if an older installation does not start.
 
 Right-click the icon to inspect its status, choose the indicator color with an
 immediate preview on the keyboard, enable
-or disable automatic start, or exit and restore the previous lighting state.
+or disable automatic start, open the settings dialog, or exit and restore the
+previous lighting state. The **About** tab shows the application version and a
+link to the project repository.
 
 The **Tray display** submenu independently selects a classic full-icon flash, an
 eight-step meter that fills the entire icon, or a static application icon. The

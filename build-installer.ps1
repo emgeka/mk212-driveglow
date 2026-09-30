@@ -4,6 +4,7 @@ $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 & (Join-Path $projectRoot 'build.ps1')
 
 $compilerCandidates = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
     (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')
 )
@@ -14,4 +15,4 @@ if (-not $compiler) {
 
 & $compiler (Join-Path $projectRoot 'installer\MK212DriveGlow.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
-Write-Host "Built $(Join-Path $projectRoot 'dist\MK212-DriveGlow-Setup-v1.3.0.exe')"
+Write-Host "Built $(Join-Path $projectRoot 'dist\MK212-DriveGlow-Setup-v1.4.0.exe')"

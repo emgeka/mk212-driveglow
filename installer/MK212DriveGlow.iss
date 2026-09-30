@@ -1,5 +1,5 @@
 #define MyAppName "MK212 DriveGlow"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.4.0"
 #define MyAppExeName "MK212-DriveGlow.exe"
 
 [Setup]
@@ -7,6 +7,11 @@ AppId={{94F78708-1EAF-49A4-8EA2-B859B11723D5}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher=MK212 DriveGlow contributors
+VersionInfoVersion={#MyAppVersion}.0
+VersionInfoCompany=MK212 DriveGlow contributors
+VersionInfoDescription=MK212 DriveGlow Setup
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
 DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -56,4 +61,4 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupA
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--shutdown"; Flags: runhidden waituntilterminated skipifdoesntexist
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--shutdown"; Flags: runhidden waituntilterminated skipifdoesntexist; RunOnceId: "ShutdownDriveGlow"

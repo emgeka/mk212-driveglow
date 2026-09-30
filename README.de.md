@@ -15,7 +15,7 @@ Die Tastenbeleuchtung bleibt unverändert.
 ## Einrichtung
 
 Am einfachsten ist die Installation mit
-`MK212-DriveGlow-Setup-v1.3.0.exe`. Der Assistent installiert DriveGlow ohne
+`MK212-DriveGlow-Setup-v1.4.0.exe`. Der Assistent installiert DriveGlow ohne
 Administratorrechte, legt einen Startmenüeintrag an und bietet den automatischen
 Start bei der Windows-Anmeldung an.
 
@@ -40,9 +40,11 @@ Taskleiste automatisch wieder her.
 
 Per Rechtsklick lässt sich die Anzeigefarbe im originalen Windows-Farbdialog
 wählen und direkt auf der Lichtleiste ansehen. Der automatische Start lässt sich
-umschalten oder das Programm beenden. Die Farbe wird für den aktuellen
-Windows-Benutzer gespeichert. Beim normalen Beenden wird die vorherige
-Einstellung der Seitenleiste wiederhergestellt.
+umschalten, der Einstellungsdialog öffnen oder das Programm beenden. Im Reiter
+**About** stehen eine Kurzbeschreibung, das App-Logo, die Versionsnummer und der
+Link zum Projekt-Repository. Die Farbe wird für den aktuellen Windows-Benutzer
+gespeichert. Beim normalen Beenden wird die vorherige Einstellung der
+Seitenleiste wiederhergestellt.
 
 Der Autostart wird über eine Verknüpfung im persönlichen Windows-Autostartordner
 realisiert. Ältere Registry-Autostarteinträge werden beim nächsten Programmstart

@@ -472,6 +472,24 @@ internal static class Program
                 catch (Exception ex) { MessageBox.Show("Die Autostart-Einstellung konnte nicht geändert werden:\r\n\r\n" + ex.Message, AppName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
             };
             menu.Items.Add(startup);
+            var settings = new ToolStripMenuItem("Einstellungen \u2026");
+            settings.Click += delegate
+            {
+                using (var dialog = new SettingsForm(
+                    delegate { return Color.FromArgb(activityColorArgb); },
+                    ChooseColor,
+                    delegate { return Thread.VolatileRead(ref displayMode); },
+                    delegate(int selectedMode) { if (selectedMode == 0) classicMode.PerformClick(); else levelMode.PerformClick(); },
+                    delegate { return Thread.VolatileRead(ref trayDisplayMode); },
+                    delegate(int selectedMode) { trayChoices[selectedMode].PerformClick(); },
+                    delegate { return startup.Checked; },
+                    delegate(bool enabled) { startup.Checked = enabled; }))
+                {
+                    dialog.ShowDialog();
+                }
+            };
+            menu.Items.Add(settings);
+            menu.Items.Add(new ToolStripSeparator());
             var exit = new ToolStripMenuItem("Beenden");
             exit.Click += delegate { stop.Set(); };
             menu.Items.Add(exit);
@@ -698,6 +716,269 @@ internal static class Program
             }
             base.Dispose(disposing);
         }
+    }
+}
+
+internal sealed class SettingsForm : Form
+{
+    private const string RepositoryUrl = "https://github.com/emgeka/mk212-driveglow";
+    private readonly Icon ownedIcon;
+    private readonly Image ownedImage;
+
+    public SettingsForm(
+        Func<Color> getColor,
+        Action chooseColor,
+        Func<int> getDisplayMode,
+        Action<int> setDisplayMode,
+        Func<int> getTrayDisplayMode,
+        Action<int> setTrayDisplayMode,
+        Func<bool> getStartupEnabled,
+        Action<bool> setStartupEnabled)
+    {
+        Text = "MK212 DriveGlow";
+        ClientSize = new Size(560, 420);
+        MinimumSize = new Size(500, 390);
+        StartPosition = FormStartPosition.CenterScreen;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        MinimizeBox = false;
+        ShowInTaskbar = false;
+        Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+
+        try
+        {
+            using (Icon extracted = Icon.ExtractAssociatedIcon(Application.ExecutablePath))
+            {
+                if (extracted != null)
+                {
+                    ownedIcon = (Icon)extracted.Clone();
+                    Icon = ownedIcon;
+                }
+            }
+        }
+        catch { }
+        ownedImage = CreateAboutLogo(256);
+
+        var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(14, 5) };
+        tabs.TabPages.Add(CreateSettingsPage(getColor, chooseColor, getDisplayMode, setDisplayMode, getTrayDisplayMode, setTrayDisplayMode, getStartupEnabled, setStartupEnabled));
+        tabs.TabPages.Add(CreateAboutPage());
+
+        var close = new Button { Text = "Schlie\u00dfen", AutoSize = true, DialogResult = DialogResult.OK, Padding = new Padding(14, 2, 14, 2) };
+        var buttons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            AutoSize = true,
+            Padding = new Padding(8, 6, 8, 8)
+        };
+        buttons.Controls.Add(close);
+
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(tabs, 0, 0);
+        layout.Controls.Add(buttons, 0, 1);
+        Controls.Add(layout);
+        AcceptButton = close;
+        CancelButton = close;
+    }
+
+    private static TabPage CreateSettingsPage(
+        Func<Color> getColor,
+        Action chooseColor,
+        Func<int> getDisplayMode,
+        Action<int> setDisplayMode,
+        Func<int> getTrayDisplayMode,
+        Action<int> setTrayDisplayMode,
+        Func<bool> getStartupEnabled,
+        Action<bool> setStartupEnabled)
+    {
+        var page = new TabPage("Einstellungen") { Padding = new Padding(18) };
+        var table = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, RowCount = 5 };
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 165F));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        for (int row = 0; row < 5; row++) table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var heading = new Label
+        {
+            Text = "Anzeige konfigurieren",
+            AutoSize = true,
+            Font = new Font("Segoe UI", 13F, FontStyle.Bold),
+            Margin = new Padding(0, 0, 0, 18)
+        };
+        table.Controls.Add(heading, 0, 0);
+        table.SetColumnSpan(heading, 2);
+
+        var colorLabel = new Label { Text = "Anzeigefarbe", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 8, 8, 12) };
+        var colorPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 8) };
+        var swatch = new Panel { BackColor = getColor(), BorderStyle = BorderStyle.FixedSingle, Size = new Size(32, 26), Margin = new Padding(0, 3, 8, 3) };
+        var colorButton = new Button { Text = "Farbe ausw\u00e4hlen \u2026", AutoSize = true };
+        colorButton.Click += delegate
+        {
+            chooseColor();
+            swatch.BackColor = getColor();
+        };
+        colorPanel.Controls.Add(swatch);
+        colorPanel.Controls.Add(colorButton);
+        table.Controls.Add(colorLabel, 0, 1);
+        table.Controls.Add(colorPanel, 1, 1);
+
+        var lightLabel = new Label { Text = "Lichtleiste", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 8, 8, 12) };
+        var lightMode = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Margin = new Padding(0, 3, 0, 10) };
+        lightMode.Items.AddRange(new object[] { "Klassisches Blinken", "Aktivit\u00e4tspegel" });
+        lightMode.SelectedIndex = Math.Max(0, Math.Min(1, getDisplayMode()));
+        lightMode.SelectedIndexChanged += delegate { setDisplayMode(lightMode.SelectedIndex); };
+        table.Controls.Add(lightLabel, 0, 2);
+        table.Controls.Add(lightMode, 1, 2);
+
+        var trayLabel = new Label { Text = "Tray-Anzeige", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 8, 8, 12) };
+        var trayMode = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Margin = new Padding(0, 3, 0, 10) };
+        trayMode.Items.AddRange(new object[] { "Klassisches Blinken", "Aktivit\u00e4tspegel", "Nur App-Symbol" });
+        trayMode.SelectedIndex = Math.Max(0, Math.Min(2, getTrayDisplayMode()));
+        trayMode.SelectedIndexChanged += delegate { setTrayDisplayMode(trayMode.SelectedIndex); };
+        table.Controls.Add(trayLabel, 0, 3);
+        table.Controls.Add(trayMode, 1, 3);
+
+        var startup = new CheckBox { Text = "Beim Anmelden automatisch starten", AutoSize = true, Checked = getStartupEnabled(), Margin = new Padding(0, 12, 0, 0) };
+        startup.CheckedChanged += delegate { setStartupEnabled(startup.Checked); };
+        table.Controls.Add(startup, 0, 4);
+        table.SetColumnSpan(startup, 2);
+
+        page.Controls.Add(table);
+        return page;
+    }
+
+    private TabPage CreateAboutPage()
+    {
+        var page = new TabPage("About") { Padding = new Padding(22) };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104F));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        table.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        var logo = new PictureBox
+        {
+            Image = ownedImage,
+            Size = new Size(80, 80),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Margin = new Padding(0, 2, 24, 0)
+        };
+        table.Controls.Add(logo, 0, 0);
+        table.SetRowSpan(logo, 2);
+
+        var title = new Label
+        {
+            Text = "MK212 DriveGlow",
+            AutoSize = true,
+            Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+            Margin = new Padding(0, 0, 0, 3)
+        };
+        table.Controls.Add(title, 1, 0);
+
+        var version = new Label
+        {
+            Text = "Version " + GetDisplayVersion(),
+            AutoSize = true,
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(0, 0, 0, 24)
+        };
+        table.Controls.Add(version, 1, 1);
+
+        var description = new Label
+        {
+            Text = "MK212 DriveGlow nutzt die Accent Bar der OMOTON MK212 als klassische Windows-Datentr\u00e4geraktivit\u00e4tsanzeige.",
+            AutoSize = true,
+            MaximumSize = new Size(390, 0),
+            Margin = new Padding(0, 8, 0, 20)
+        };
+        table.Controls.Add(description, 0, 2);
+        table.SetColumnSpan(description, 2);
+
+        var repositoryCaption = new Label { Text = "Repository", AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 5) };
+        table.Controls.Add(repositoryCaption, 0, 3);
+        table.SetColumnSpan(repositoryCaption, 2);
+
+        var repository = new LinkLabel { Text = RepositoryUrl, AutoSize = true, Margin = new Padding(0) };
+        repository.LinkClicked += delegate
+        {
+            try { Process.Start(new ProcessStartInfo(RepositoryUrl) { UseShellExecute = true }); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Das Repository konnte nicht ge\u00f6ffnet werden:\r\n\r\n" + ex.Message, "MK212 DriveGlow", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        };
+        table.Controls.Add(repository, 0, 4);
+        table.SetColumnSpan(repository, 2);
+
+        page.Controls.Add(table);
+        return page;
+    }
+
+    private static Image CreateAboutLogo(int size)
+    {
+        var bitmap = new Bitmap(size, size, PixelFormat.Format32bppPArgb);
+        using (Graphics graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.Clear(Color.Transparent);
+            float scale = size / 256F;
+            graphics.ScaleTransform(scale, scale);
+
+            using (GraphicsPath background = RoundedRectangle(new RectangleF(4, 4, 248, 248), 50))
+            using (GraphicsPath drive = RoundedRectangle(new RectangleF(35, 55, 186, 146), 18))
+            using (var backgroundBrush = new SolidBrush(Color.FromArgb(32, 37, 43)))
+            using (var driveBrush = new SolidBrush(Color.FromArgb(47, 52, 58)))
+            using (var edge = new Pen(Color.FromArgb(220, 225, 230), 13F))
+            using (var detail = new Pen(Color.FromArgb(170, 180, 190), 12F))
+            {
+                edge.LineJoin = LineJoin.Round;
+                detail.StartCap = LineCap.Round;
+                detail.EndCap = LineCap.Round;
+                graphics.FillPath(backgroundBrush, background);
+                graphics.FillPath(driveBrush, drive);
+                graphics.DrawPath(edge, drive);
+                graphics.DrawEllipse(detail, 75, 82, 88, 88);
+                graphics.DrawLine(detail, 148, 148, 187, 101);
+            }
+        }
+        return bitmap;
+    }
+
+    private static GraphicsPath RoundedRectangle(RectangleF bounds, float radius)
+    {
+        float diameter = radius * 2F;
+        var path = new GraphicsPath();
+        path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
+    }
+
+    private static string GetDisplayVersion()
+    {
+        Version version = Assembly.GetExecutingAssembly().GetName().Version;
+        if (version == null) return "unbekannt";
+        string display = version.Major + "." + version.Minor;
+        if (version.Build >= 0) display += "." + version.Build;
+        if (version.Revision > 0) display += "." + version.Revision;
+        return display;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            if (ownedImage != null) ownedImage.Dispose();
+            if (ownedIcon != null) ownedIcon.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
 
