@@ -55,9 +55,7 @@ required.
 
 ### WinGet
 
-The [WinGet submission](https://github.com/microsoft/winget-pkgs/pull/444139)
-has passed all automated validation and is awaiting moderator approval. Once it
-is available in the WinGet community repository, install DriveGlow with:
+DriveGlow is available in the official WinGet community repository. Install it with:
 
 ```powershell
 winget install --id emgeka.MK212DriveGlow --exact
